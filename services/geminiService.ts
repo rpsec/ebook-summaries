@@ -1,5 +1,7 @@
-import { GoogleGenAI } from "@google/genai";
 import { SummaryMode } from "../types";
+import { LiteLlm } from "./adk/liteLlm";
+import { LlmRequest } from "@google/adk";
+import { Content } from "@google/genai";
 
 const getSystemInstruction = (mode: SummaryMode): string => {
   switch (mode) {
@@ -65,38 +67,64 @@ export const generateSummary = async (
   mode: SummaryMode,
   modelId: string
 ): Promise<string> => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    throw new Error("API_KEY not found in environment variables");
-  }
+  // We use a dummy key or env var for LiteLLM
+  const apiKey = process.env.API_KEY || "sk-litellm-local";
+  const baseUrl = process.env.VITE_LITELLM_BASE_URL || "http://localhost:4000/v1";
 
-  const ai = new GoogleGenAI({ apiKey });
+  const liteLlm = new LiteLlm({
+    model: modelId,
+    apiKey,
+    baseUrl
+  });
 
   try {
-    const response = await ai.models.generateContent({
-      model: modelId,
-      config: {
-        systemInstruction: getSystemInstruction(mode),
-        temperature: mode === SummaryMode.HUMAN ? 0.3 : 0.1, // Lower temp for Agent/Markdown accuracy
-      },
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              data: base64Data,
-              mimeType: mimeType,
-            },
+    const contents: Content[] = [{
+      role: "user",
+      parts: [
+        {
+          inlineData: {
+            data: base64Data,
+            mimeType: mimeType,
           },
-          {
-            text: "Analyze this document and generate the output based on the system instructions.",
-          },
-        ],
-      },
-    });
+        },
+        {
+          text: "Analyze this document and generate the output based on the system instructions.",
+        },
+      ],
+    }];
 
-    return response.text || "No output generated.";
+    const request: LlmRequest = {
+      model: modelId,
+      contents: contents,
+      config: {
+        systemInstruction: {
+            parts: [{ text: getSystemInstruction(mode) }]
+        },
+        temperature: mode === SummaryMode.HUMAN ? 0.3 : 0.1,
+      },
+      liveConnectConfig: {}, // Required by interface but not used here
+      toolsDict: {} // Required by interface but not used here
+    };
+
+    const generator = liteLlm.generateContentAsync(request);
+    let fullText = "";
+
+    for await (const response of generator) {
+        if (response.errorMessage) {
+            throw new Error(response.errorMessage);
+        }
+        if (response.content?.parts) {
+            for (const part of response.content.parts) {
+                if (part.text) {
+                    fullText += part.text;
+                }
+            }
+        }
+    }
+
+    return fullText || "No output generated.";
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
+    console.error("LiteLLM/ADK Error:", error);
     throw new Error(error.message || "Failed to process document");
   }
 };
