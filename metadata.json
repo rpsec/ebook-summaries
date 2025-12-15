@@ -1,0 +1,5 @@
+{
+  "name": "Gemini Ebook Lens",
+  "description": "Parse and summarize ebooks (PDF/TXT) with specific modes for Human readability or AI Agent context optimization.",
+  "requestFramePermissions": []
+}
