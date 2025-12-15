@@ -25,3 +25,8 @@ export interface FileData {
   base64: string;
   mimeType: string;
 }
+
+export const AVAILABLE_MODELS = [
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
+  { id: 'gemini-3-pro-preview', name: 'Gemini 3.0 Pro' },
+];

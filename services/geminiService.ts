@@ -62,7 +62,8 @@ const getSystemInstruction = (mode: SummaryMode): string => {
 export const generateSummary = async (
   base64Data: string,
   mimeType: string,
-  mode: SummaryMode
+  mode: SummaryMode,
+  modelId: string
 ): Promise<string> => {
   const apiKey = process.env.API_KEY;
   if (!apiKey) {
@@ -70,9 +71,6 @@ export const generateSummary = async (
   }
 
   const ai = new GoogleGenAI({ apiKey });
-  
-  // Using gemini-2.5-flash for massive context window (1M tokens) and speed
-  const modelId = 'gemini-2.5-flash'; 
 
   try {
     const response = await ai.models.generateContent({

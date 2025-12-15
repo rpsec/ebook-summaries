@@ -6,8 +6,8 @@ import { HistoryList } from './components/HistoryList';
 import { generateSummary } from './services/geminiService';
 import { parseEpub } from './services/epubService';
 import { getHistory, saveHistoryItem, clearHistory } from './services/historyService';
-import { FileData, SummaryMode, ProcessingState, SummaryResult } from './types';
-import { BrainCircuit, User, Bot, FileText, Sparkles, Moon, Sun, FileCode, ListTree, BookCopy } from 'lucide-react';
+import { FileData, SummaryMode, ProcessingState, SummaryResult, AVAILABLE_MODELS } from './types';
+import { BrainCircuit, User, Bot, FileText, Sparkles, Moon, Sun, FileCode, ListTree, BookCopy, ChevronDown } from 'lucide-react';
 
 const App: React.FC = () => {
   const [fileData, setFileData] = useState<FileData | null>(null);
@@ -20,6 +20,7 @@ const App: React.FC = () => {
   const [result, setResult] = useState<SummaryResult | null>(null);
   const [history, setHistory] = useState<SummaryResult[]>([]);
   const [isDark, setIsDark] = useState(false);
+  const [modelId, setModelId] = useState<string>(AVAILABLE_MODELS[0].id);
   
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -76,7 +77,7 @@ const App: React.FC = () => {
       }
 
       setProcessing(prev => ({ ...prev, progress: 'Generating output with Gemini...' }));
-      const summaryText = await generateSummary(base64Payload, mimeTypePayload, mode);
+      const summaryText = await generateSummary(base64Payload, mimeTypePayload, mode, modelId);
       
       const newResult: SummaryResult = {
         id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(),
@@ -179,10 +180,23 @@ const App: React.FC = () => {
               Gemini Ebook Lens
             </h1>
           </div>
-          <div className="flex items-center space-x-4">
-             <div className="text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full hidden sm:block">
-              Powered by Gemini 2.5 Flash
+          <div className="flex items-center space-x-3 sm:space-x-4">
+             <div className="relative group hidden sm:block">
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-gray-500">
+                    <ChevronDown className="w-3 h-3" />
+                </div>
+                <select
+                    value={modelId}
+                    onChange={(e) => setModelId(e.target.value)}
+                    className="appearance-none bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-xs font-medium text-gray-700 dark:text-gray-200 py-1.5 pl-3 pr-8 rounded-lg border border-transparent focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all cursor-pointer"
+                    aria-label="Select AI Model"
+                >
+                    {AVAILABLE_MODELS.map(model => (
+                        <option key={model.id} value={model.id}>{model.name}</option>
+                    ))}
+                </select>
              </div>
+
              <button 
               onClick={toggleTheme}
               className="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 transition-colors"
@@ -195,6 +209,24 @@ const App: React.FC = () => {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
+        
+        {/* Mobile Model Selector (visible only on small screens) */}
+        <div className="sm:hidden mb-6 flex justify-end">
+            <div className="relative group w-full max-w-[200px]">
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none text-gray-500">
+                    <ChevronDown className="w-3 h-3" />
+                </div>
+                <select
+                    value={modelId}
+                    onChange={(e) => setModelId(e.target.value)}
+                    className="w-full appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-700 dark:text-gray-200 py-2 pl-3 pr-8 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+                >
+                     {AVAILABLE_MODELS.map(model => (
+                        <option key={model.id} value={model.id}>{model.name}</option>
+                    ))}
+                </select>
+            </div>
+        </div>
         
         {/* Introduction */}
         {!fileData && !result && (
